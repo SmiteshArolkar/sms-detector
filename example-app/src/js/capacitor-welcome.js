@@ -1,5 +1,6 @@
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Camera } from '@capacitor/camera';
+import { SmsDetector } from 'sms-detector';
 
 window.customElements.define(
   'capacitor-welcome',
@@ -32,6 +33,7 @@ window.customElements.define(
         border-radius: 3px;
         text-decoration: none;
         cursor: pointer;
+        margin-right: 5px;
       }
       main {
         padding: 15px;
@@ -54,30 +56,33 @@ window.customElements.define(
       main pre {
         white-space: pre-line;
       }
+      #otp-display {
+        font-size: 24px;
+        font-weight: bold;
+        padding: 10px;
+        background-color: #f5f5f5;
+        border-radius: 5px;
+        margin: 10px 0;
+        display: inline-block;
+      }
     </style>
     <div>
       <capacitor-welcome-titlebar>
-        <h1>Capacitor</h1>
+        <h1>Capacitor SMS Detector</h1>
       </capacitor-welcome-titlebar>
       <main>
+        <h1>SMS OTP Detector</h1>
         <p>
-          Capacitor makes it easy to build powerful apps for the app stores, mobile web (Progressive Web Apps), and desktop, all
-          with a single code base.
+          This plugin automatically detects OTP codes from incoming SMS messages and forwards them to your web app.
         </p>
-        <h2>Getting Started</h2>
+        <h2>Detected OTP</h2>
+        <div id="otp-display">No OTP detected yet</div>
         <p>
-          You'll probably need a UI framework to build a full-featured app. Might we recommend
-          <a target="_blank" href="http://ionicframework.com/">Ionic</a>?
+          <button class="button" id="start-listening">Start Listening</button>
+          <button class="button" id="stop-listening">Stop Listening</button>
+          <button class="button" id="check-permission">Check Permission</button>
         </p>
-        <p>
-          Visit <a href="https://capacitorjs.com">capacitorjs.com</a> for information
-          on using native features, building plugins, and more.
-        </p>
-        <a href="https://capacitorjs.com" target="_blank" class="button">Read more</a>
-        <h2>Tiny Demo</h2>
-        <p>
-          This demo shows how to call Capacitor plugins. Say cheese!
-        </p>
+        <h2>Take a photo</h2>
         <p>
           <button class="button" id="take-photo">Take Photo</button>
         </p>
@@ -92,6 +97,7 @@ window.customElements.define(
     connectedCallback() {
       const self = this;
 
+      // Photo functionality
       self.shadowRoot.querySelector('#take-photo').addEventListener('click', async function (e) {
         try {
           const photo = await Camera.getPhoto({
@@ -106,6 +112,58 @@ window.customElements.define(
           image.src = photo.webPath;
         } catch (e) {
           console.warn('User cancelled', e);
+        }
+      });
+
+      // Start listening for SMS OTPs
+      self.shadowRoot.querySelector('#start-listening').addEventListener('click', async function (e) {
+        try {
+          const permResult = await SmsDetector.hasPermission();
+          if (!permResult.granted) {
+            console.log('Requesting SMS permission...');
+            await SmsDetector.requestPermission();
+          }
+
+          const result = await SmsDetector.startListening();
+          console.log('Started listening for SMS:', result);
+          
+          // Add a listener for detected OTPs
+          SmsDetector.addListener('otpReceived', (data) => {
+            const otpDisplay = self.shadowRoot.querySelector('#otp-display');
+            if (otpDisplay) {
+              otpDisplay.textContent = data.code;
+              
+              // You could also send this to a web form
+              // For example, if you're using this with a WebView:
+              // webView.postMessage(JSON.stringify({ type: 'otp', code: data.code }));
+            }
+          });
+          
+          alert('Listening for SMS OTPs');
+        } catch (err) {
+          console.error('Error starting SMS detector:', err);
+        }
+      });
+
+      // Stop listening for SMS OTPs
+      self.shadowRoot.querySelector('#stop-listening').addEventListener('click', async function (e) {
+        try {
+          const result = await SmsDetector.stopListening();
+          console.log('Stopped listening for SMS:', result);
+          SmsDetector.removeAllListeners();
+          alert('Stopped listening for SMS OTPs');
+        } catch (err) {
+          console.error('Error stopping SMS detector:', err);
+        }
+      });
+
+      // Check SMS permission
+      self.shadowRoot.querySelector('#check-permission').addEventListener('click', async function (e) {
+        try {
+          const result = await SmsDetector.hasPermission();
+          alert('SMS permission granted: ' + result.granted);
+        } catch (err) {
+          console.error('Error checking SMS permission:', err);
         }
       });
     }
