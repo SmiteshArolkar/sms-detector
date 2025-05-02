@@ -1,7 +1,7 @@
 {
   "name": "sms-detector",
   "version": "0.0.1",
-  "description": "Sms detection for android and ios",
+  "description": "SMS OTP detection for Android and iOS",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",

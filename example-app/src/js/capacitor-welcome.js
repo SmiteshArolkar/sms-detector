@@ -89,6 +89,12 @@ window.customElements.define(
         <p>
           <img id="image" style="max-width: 100%">
         </p>
+        <h2>SMS Format for Testing</h2>
+        <p>
+          <button class="button" id="show-sms-format">Show SMS Format</button>
+        </p>
+        <div id="sms-format-container"></div>
+        <div id="hash-container"></div>
       </main>
     </div>
     `;
@@ -115,31 +121,47 @@ window.customElements.define(
         }
       });
 
-      // Start listening for SMS OTPs
+      // Start listening for SMS OTPs and show app hash for testing
       self.shadowRoot.querySelector('#start-listening').addEventListener('click', async function (e) {
         try {
-          const permResult = await SmsDetector.hasPermission();
-          if (!permResult.granted) {
-            console.log('Requesting SMS permission...');
-            await SmsDetector.requestPermission();
-          }
-
+          // Start the listener and get back the app hash
           const result = await SmsDetector.startListening();
           console.log('Started listening for SMS:', result);
           
-          // Add a listener for detected OTPs
+          // Show the app hash for testing
+          if (result.appSignature) {
+            const hashDisplay = document.createElement('div');
+            hashDisplay.style.padding = '10px';
+            hashDisplay.style.backgroundColor = '#f8f9fa';
+            hashDisplay.style.border = '1px solid #ddd';
+            hashDisplay.style.borderRadius = '5px';
+            hashDisplay.style.marginTop = '10px';
+            hashDisplay.style.fontFamily = 'monospace';
+            
+            hashDisplay.innerHTML = `
+              <h4>App Hash (copied to clipboard):</h4>
+              <code>${result.appSignature}</code>
+              <h4>Test SMS Format:</h4>
+              <code>&lt;#&gt; Your verification code is: 123456 ${result.appSignature}</code>
+            `;
+            
+            const container = self.shadowRoot.querySelector('#hash-container');
+            if (container) {
+              container.innerHTML = '';
+              container.appendChild(hashDisplay);
+            }
+          }
+          
+          // Set up event listeners
           SmsDetector.addListener('otpReceived', (data) => {
+            console.log('OTP received:', data.code);
             const otpDisplay = self.shadowRoot.querySelector('#otp-display');
             if (otpDisplay) {
               otpDisplay.textContent = data.code;
-              
-              // You could also send this to a web form
-              // For example, if you're using this with a WebView:
-              // webView.postMessage(JSON.stringify({ type: 'otp', code: data.code }));
             }
           });
           
-          alert('Listening for SMS OTPs');
+          alert('Listening for SMS OTPs. App hash copied to clipboard.');
         } catch (err) {
           console.error('Error starting SMS detector:', err);
         }
@@ -164,6 +186,50 @@ window.customElements.define(
           alert('SMS permission granted: ' + result.granted);
         } catch (err) {
           console.error('Error checking SMS permission:', err);
+        }
+      });
+
+      // Add a function to show the SMS format required for automatic detection
+      async function showSmsFormat() {
+        try {
+          const signatureResult = await SmsDetector.getAppSignature();
+          const appSignature = signatureResult.signature;
+          
+          if (appSignature) {
+            const formatDiv = document.createElement('div');
+            formatDiv.style.padding = '10px';
+            formatDiv.style.backgroundColor = '#f8f9fa';
+            formatDiv.style.border = '1px solid #ddd';
+            formatDiv.style.borderRadius = '5px';
+            formatDiv.style.marginTop = '10px';
+            formatDiv.style.fontFamily = 'monospace';
+            formatDiv.style.whiteSpace = 'pre-wrap';
+            
+            formatDiv.innerHTML = `<strong>SMS Format for Testing:</strong>
+<code>&lt;#&gt; Your verification code is: 123456
+${appSignature}</code>
+
+<p>Make sure to include the app hash at the end of your SMS for automatic detection!</p>`;
+            
+            const container = self.shadowRoot.querySelector('#sms-format-container');
+            container.innerHTML = '';
+            container.appendChild(formatDiv);
+          }
+        } catch (err) {
+          console.error('Error getting app signature:', err);
+        }
+      }
+
+      // Add this button to the HTML
+      self.shadowRoot.querySelector('#show-sms-format').addEventListener('click', showSmsFormat);
+
+      self.shadowRoot.querySelector('#get-hash').addEventListener('click', async function (e) {
+        try {
+          const signatureResult = await SmsDetector.getAppSignature();
+          const appSignature = signatureResult.signature;
+          alert('Your app hash: ' + appSignature);
+        } catch (err) {
+          console.error('Error getting app signature:', err);
         }
       });
     }

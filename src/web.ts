@@ -3,18 +3,15 @@ import { WebPlugin } from '@capacitor/core';
 import type { SmsDetectorPlugin } from './definitions';
 
 export class SmsDetectorWeb extends WebPlugin implements SmsDetectorPlugin {
-  // Override addListener but use type assertion to satisfy both types
-  addListener(
+  async addListener(
     eventName: string, 
     listenerFunc: (...args: any[]) => any
   ): Promise<any> {
-    // Call the original implementation
     const result = super.addListener(eventName, listenerFunc);
-    // Return the result but TypeScript treats it as Promise<void>
     return result as any;
   }
 
-  removeAllListeners(): Promise<void> {
+  async removeAllListeners(): Promise<void> {
     return super.removeAllListeners();
   }
 
@@ -41,5 +38,10 @@ export class SmsDetectorWeb extends WebPlugin implements SmsDetectorPlugin {
   async requestPermission(): Promise<{ granted: boolean }> {
     console.warn('SMS permissions are not available on web');
     return { granted: false };
+  }
+  
+  async getAppSignature(): Promise<{ signature: string }> {
+    console.warn('App signature is not available on web');
+    return { signature: '' };
   }
 }

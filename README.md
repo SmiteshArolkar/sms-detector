@@ -1,137 +1,64 @@
-# sms-detector
+# SMS Detector Capacitor Plugin
 
-Sms detection for android and ios
+A Capacitor plugin for automatically detecting SMS OTP codes.
 
-## Install
+## Platform Support
+
+### Android
+Full support for automatic SMS OTP detection using SMS broadcast receivers.
+
+### iOS
+Limited support using iOS SMS AutoFill feature:
+- Works only with iOS 12 and above
+- Requires user interaction (tapping on the input field)
+- The OTP must be in the format specified by Apple (carrier message format)
+- Detection is not fully automatic as on Android
+
+## Installation
 
 ```bash
 npm install sms-detector
 npx cap sync
 ```
 
-## API
-
-<docgen-index>
-
-* [`echo(...)`](#echo)
-* [`startListening()`](#startlistening)
-* [`stopListening()`](#stoplistening)
-* [`hasPermission()`](#haspermission)
-* [`requestPermission()`](#requestpermission)
-* [`addListener(string, ...)`](#addlistenerstring-)
-* [`removeAllListeners()`](#removealllisteners)
-* [Interfaces](#interfaces)
-
-</docgen-index>
-
-<docgen-api>
-<!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
-
-### echo(...)
+## Usage
 
 ```typescript
-echo(options: { value: string; }) => Promise<{ value: string; }>
+import { SmsDetector } from 'sms-detector';
+
+// Start listening for OTPs
+async function startDetection() {
+  const permResult = await SmsDetector.hasPermission();
+  if (!permResult.granted) {
+    await SmsDetector.requestPermission();
+  }
+  
+  await SmsDetector.startListening();
+  
+  // Listen for OTPs
+  SmsDetector.addListener('otpReceived', (data) => {
+    console.log('Received OTP:', data.code);
+    // Handle the OTP (autofill form, etc.)
+  });
+  
+  // iOS-specific event
+  SmsDetector.addListener('iosAutoFillReady', (data) => {
+    console.log(data.message);
+    // Inform the user to tap on the input field if needed
+  });
+}
+
+// Stop detection
+function stopDetection() {
+  SmsDetector.stopListening();
+  SmsDetector.removeAllListeners();
+}
 ```
 
-Echo a value
+## iOS Specific Instructions
 
-| Param         | Type                            |
-| ------------- | ------------------------------- |
-| **`options`** | <code>{ value: string; }</code> |
+For iOS, make sure your input field for OTP is focused/tapped by the user. The iOS SMS AutoFill feature requires user interaction and will show suggested OTPs in the QuickType bar above the keyboard.
 
-**Returns:** <code>Promise&lt;{ value: string; }&gt;</code>
+## Android Permissions
 
---------------------
-
-
-### startListening()
-
-```typescript
-startListening() => Promise<{ success: boolean; }>
-```
-
-Start listening for SMS messages to detect OTPs
-
-**Returns:** <code>Promise&lt;{ success: boolean; }&gt;</code>
-
---------------------
-
-
-### stopListening()
-
-```typescript
-stopListening() => Promise<{ success: boolean; }>
-```
-
-Stop listening for SMS messages
-
-**Returns:** <code>Promise&lt;{ success: boolean; }&gt;</code>
-
---------------------
-
-
-### hasPermission()
-
-```typescript
-hasPermission() => Promise<{ granted: boolean; }>
-```
-
-Check if the app has SMS permissions
-
-**Returns:** <code>Promise&lt;{ granted: boolean; }&gt;</code>
-
---------------------
-
-
-### requestPermission()
-
-```typescript
-requestPermission() => Promise<{ granted: boolean; }>
-```
-
-Request SMS permissions
-
-**Returns:** <code>Promise&lt;{ granted: boolean; }&gt;</code>
-
---------------------
-
-
-### addListener(string, ...)
-
-```typescript
-addListener(eventName: string, listenerFunc: (...args: any[]) => any) => Promise<PluginListenerHandle>
-```
-
-Add listener for OTP detection
-
-| Param              | Type                                    |
-| ------------------ | --------------------------------------- |
-| **`eventName`**    | <code>string</code>                     |
-| **`listenerFunc`** | <code>(...args: any[]) =&gt; any</code> |
-
-**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
-
---------------------
-
-
-### removeAllListeners()
-
-```typescript
-removeAllListeners() => Promise<void>
-```
-
-Remove listeners for OTP detection
-
---------------------
-
-
-### Interfaces
-
-
-#### PluginListenerHandle
-
-| Prop         | Type                                      |
-| ------------ | ----------------------------------------- |
-| **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
-
-</docgen-api>
+This plugin automatically handles the necessary SMS permissions on Android.
